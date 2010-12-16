@@ -1,0 +1,45 @@
+#!/usr/bin/python
+
+import numpy, sys
+import os
+
+if len(sys.argv) != 3:
+    print 'Usage: %s <file name 1> <file name 2>' % (sys.argv[0])
+    sys.exit(1)
+
+dir = os.getcwd()
+nameout = "diff.out"
+
+
+i = 0
+while os.path.isfile( dir +"/" + nameout ):
+    i = i + 1
+    nameout = ''.join( [ 'diff.' , `i` , '.out'] )
+
+print "              Output file > ", nameout
+
+
+filein1 = numpy.loadtxt( sys.argv[1] )
+filein2 = numpy.loadtxt( sys.argv[2] )
+
+fileout = file( nameout , "w" )
+
+column = input(''.join(["Column to make difference [1,",`numpy.shape(filein1)[1]`,"] > "]) )
+
+j = 0
+column = column - 1
+
+for i in range( numpy.shape(filein1)[0] ):
+    if (( filein1[i,0] == filein2[i,0] ) and ( filein1[i,1] == filein2[i,1] )):
+        if (i==0):
+            shift = filein1[i , column] - filein2[i , column]
+        fileout.write ( '{0:.10e}\t{1:.10e}\t{2:.10e} '.format( filein1[i,0], filein1[i,1], filein2[i,column] + shift - filein1[i,column] ) )
+        fileout.write ( '\n' )
+    else:
+        print "Error different x-y data"
+
+fileout.close()
+        
+
+
+

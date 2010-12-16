@@ -1,0 +1,46 @@
+#!/usr/bin/python
+
+import numpy, sys
+
+def usage():
+    print 'Usage: %s <file name>' % (sys.argv[0])
+
+if '--help' in sys.argv:
+    usage()
+    print '\n     The script will select all the data with a quantity inside some interval.'
+    print '     As input you have to give the file name and after the script'
+    print '     will ask you:'
+    print '       -  the column of the observable to check;'
+    print '       -  the min value'
+    print '       -  the max value'
+    sys.exit(0)
+
+
+if len(sys.argv) != 2:
+    usage()
+    sys.exit(1)
+
+filein = numpy.loadtxt( sys.argv[1] )
+
+filename = "".join( [ sys.argv[1] , ".sel" ] )
+fileout = file( filename , "w" )
+
+column = input(''.join(["Column to select [1,",`numpy.shape(filein)[1]`,"] > "]) )
+
+xmin = input("            From value > ")
+xmax = input("              To value > ")
+
+
+for i in range( numpy.shape(filein)[0] ):
+    if (( filein[i,column-1] >= xmin ) and ( filein[i,column-1] <= xmax )):
+        tmp = ''.join( ["{0:.10e}\t".format(filein[i,j]) for j in range( numpy.shape(filein)[1] ) ] )
+        fileout.write(  tmp )
+        fileout.write( '\n' )
+
+fileout.close()
+
+print 'Data written in ', filename
+        
+
+
+

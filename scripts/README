@@ -1,0 +1,4 @@
+the scripts:
+ diffdata.simo  selectdata.simo  sumdata.simo
+are selfcontained scripts to run in termianl that analize data
+in a file

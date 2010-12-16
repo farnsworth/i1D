@@ -1,0 +1,96 @@
+#!/usr/bin/python
+
+import numpy, sys, math
+import os
+
+def usage():
+    print 'Usage: %s <file name>' % (sys.argv[0])
+
+if '--help' in sys.argv:
+    usage()
+    print '\n     The script will calculate the marginal DOS using a 2D DOS.'
+    print '     As input you have to give the file name and after the script'
+    print '     will ask you:'
+    print '       -  the column of the observable to mantain;'
+    print '       -  column of dos;'
+    print '       -  if you want to calculate fluctations;'
+    print '       -  column of fluctations.'
+    sys.exit(0)
+    
+
+if len(sys.argv) != 2:
+    usage()
+    sys.exit(1)
+
+dir = os.getcwd()
+nameout = "sum.out"
+
+i = 0
+while os.path.isfile( dir +"/" + nameout ):
+    i = i + 1
+    nameout = ''.join( [ 'sum.' , `i` , '.out'] )
+
+filein = numpy.loadtxt( sys.argv[1] )
+
+
+column_x = input(''.join(["Observable [1,",`numpy.shape(filein)[1]`,"] > "]) )
+column_y = input(''.join(["       DOS [1,",`numpy.shape(filein)[1]`,"] > "]) )
+
+column_x = column_x - 1
+column_y = column_y - 1
+xvalues = []
+ysum = []
+xvalues.append( filein[ 0 , column_x ] )
+ysum.append( 0.0e0 )
+
+
+
+
+fluct = raw_input(''.join([   "Fluctations (y/[N]) > "]) )
+
+
+if ((fluct == 'y') or (fluct == 'yes')):
+    fluct_flag = True
+    column_fluct = input(''.join(["Fluctations [1,",`numpy.shape(filein)[1]`,"] > "]) )
+    column_fluct = column_fluct - 1
+    fluctsum = []
+    fluctsum.append( 0.0e0 )
+else:
+    fluct_flag = False
+
+
+shift = filein[ 0 , column_y ]
+
+
+for i in range( numpy.shape(filein)[0] ):
+    j = 0
+    while (xvalues[j] != filein[ i, column_x ] ):
+        j += 1
+        if (j>(len(xvalues)-1)):
+            xvalues.append( filein[ i , column_x ] )
+            ysum.append( 0.0e0 )
+            if ( fluct_flag ):
+                fluctsum.append( 0.0e0 )
+            
+    ysum[ j ] += math.exp(filein[ i , column_y ] - shift)
+    if ( fluct_flag ):
+        fluctsum[ j ] += (math.exp(filein[ i , column_y ] - shift ) * filein[ i , column_fluct ] )**2
+        
+    
+
+shift = math.log( ysum[ 0 ] )
+
+fileout = file( nameout , "w" )
+           
+for i in range( len( ysum ) ):
+    
+    if (fluct_flag):
+        fileout.write ( '{0:.10e}\t{1:.10e}\t{2:.10e}'.format( xvalues[i] , math.log( ysum[ i ] ) - shift , math.sqrt(fluctsum[i]/(ysum[i]**2) + fluctsum[0]/(ysum[0]**2)) ) )
+    else:
+        fileout.write ( '{0:.10e}\t{1:.10e}'.format( xvalues[i] , math.log( ysum[ i ] ) - shift  ) )
+        
+    fileout.write ( '\n' )
+
+fileout.close()
+
+print 'Data written in ', nameout
