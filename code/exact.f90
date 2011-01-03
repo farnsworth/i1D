@@ -476,6 +476,65 @@ CONTAINS
   END SUBROUTINE mag_array_calc_allspace
   !
   !
+  ! ... Correlation function in the x direction for all alpha states with simmetry k,-k
+  !
+!  SUBROUTINE corralpha_calc (l)
+    !
+!    IMPLICIT NONE
+    !
+!    REAL(kind = 8), DIMENSION (:,:), ALLOCATABLE :: matrix
+!    REAL(kind = 8) :: mgs, k
+!    INTEGER :: i,j
+    !
+!    ALLOCATE( mvect(L/2) )
+    !
+!    mgs = 0.0_dp
+    !
+!    DO i=1,L/2
+!       !
+!       k = (pi*dble(2*i-1))/dble(L)
+!       mvect(i) = sigmaz( k )/dble(L)
+!       mgs = mgs - mvect(i)
+       !
+!    END DO
+    !
+!    IF (allocated(obs)) deallocate(obs)
+!    ALLOCATE( obs( 2**(L/2) ))
+    !
+!    obs(:) = mgs
+    !
+!    DO i=0,2**(L/2)-1
+       !
+!       DO j=1,L/2
+!          IF ( btest(i,j-1) ) THEN
+!             obs(i+1) = obs(i+1) + 2.0_dp*mvect(j)
+!          END IF
+!       END DO
+       !
+!    END DO
+    !
+!    PRINT '(x,a,e10.2,a)','estimate use of RAM:',(8.0_dp/1048576.0_dp)*dble(2**(L/2))," Mb"
+    !
+!    DEALLOCATE(mvect)
+    !
+!  END SUBROUTINE corralpha_calc
+  !
+  !
+  FUNCTION BiAj(i,j,state)
+    !
+    INTEGER, INTENT(IN) :: i,j,state
+    !
+  END FUNCTION BiAj
+  !
+  !
+  FUNCTION AiAj(i,j,state)
+    !
+    INTEGER, INTENT(IN) :: i,j,state
+    COMPLEX(kind=dp) :: AiAj
+    !
+!    IF (i==j) return 1.0_dp,0.0_dp
+  END FUNCTION AiAj
+  !
   !
   !
   !

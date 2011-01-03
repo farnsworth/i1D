@@ -11,7 +11,7 @@ MODULE system
   !
   REAL (kind=8) :: pi = 3.141592653589793_dp
   !
-  CHARACTER(LEN=30) :: datadir = 'data/'
+  CHARACTER(LEN=500) :: datadir = 'data/'
   !
   !
 CONTAINS
