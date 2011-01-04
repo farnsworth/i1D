@@ -1,2 +1,7 @@
 
-plot1: it does a comparison with numerical and exaustive enumeration of P_D for the transverse magnetization
+plot1: it does a comparison with numerical and exaustive enumeration of P_D 
+       for the transverse magnetization, it does a plot of the two 
+       distribution with the relative error (or sigma) as insect
+
+plot2: the same of plot1 but for P_mc
+
