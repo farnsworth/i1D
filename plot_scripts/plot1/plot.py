@@ -17,14 +17,15 @@ from  time import sleep,time
 from matplotlib import rc
 rc('text', usetex=True)
 
-
 def calc(h0 , h, l, nsim, mnbins, threshold = 0.2, accuracy = 1.0e-6):
+    #
+    print "...Doing calculation..."
     #
     # ... setting parameters
     ising1D.system.l = l
     ising1D.system.h = h
     ising1D.system.h0 = h0
-    ising1D.system.datadir = datadir
+    ising1D.system.datadir[:len(datadir)] = datadir
     ising1D.wl_new.threshold = threshold
     ising1D.wl_new.accuracy = accuracy
     #
@@ -33,7 +34,7 @@ def calc(h0 , h, l, nsim, mnbins, threshold = 0.2, accuracy = 1.0e-6):
     #
     # ... first calculation
     ising1D.wl_new.wl_mdiag(mnbins, random_seed )
-    delta = ising1D.wl_new.delta
+#    delta = ising1D.wl_new.delta
 #    res = utilities.HistoFromLog(ising1D.wl_new.logdosf[:,1],delta)
     res = ising1D.wl_new.logdosf[:,1]
     #
@@ -52,33 +53,48 @@ def calc(h0 , h, l, nsim, mnbins, threshold = 0.2, accuracy = 1.0e-6):
     data = data/numpy.float(nsim)
     data2 = data2/numpy.float(nsim)
     sigma = numpy.sqrt( data2 - data*data )/numpy.sqrt(numpy.float(nsim))
-    #
-    # ... normalization
-    alpha = -numpy.log( delta*numpy.sum( numpy.exp(data) ) )
-    data = data + alpha
-    #
     # ... exact calculation
     ising1D.quench.mag_dist_calc( mnbins )
     data_exact = ising1D.quench.dist.copy()
     #
     # save data for plot
-    numpy.savetxt( datadir+'data_num.dat',numpy.column_stack( (ising1D.wl_new.logdosf[:,0],data,sigma) ) , fmt='%.18e')
+    numpy.savetxt( datadir+'/data_num.dat',numpy.column_stack( (ising1D.wl_new.logdosf[:,0],data,sigma) ) , fmt='%.18e')
     #
-    numpy.savetxt( datadir+'data_exact.dat', data_exact)
+    numpy.savetxt( datadir+'/data_exact.dat', data_exact,fmt='%.18e')
+    #
+    if (nsim>1):
+        plot(True)
+    else:
+        plot(False)
     #
     return
 
-
-def plot():
+def plot(sigma = False):
     #
-    data = numpy.loadtxt( datadir+'data_num.dat')
-    data_exact = numpy.loadtxt( datadir+'data_exact.dat')
+    print "... Doing the plot ..."
+    #
+    data = numpy.loadtxt( datadir+'/data_num.dat')
+    data_exact = numpy.loadtxt( datadir+'/data_exact.dat')
+    #
+    # ... normalization
+    deltas = []
+    deltas = [ data[i+1,0]-data[i,0] for i in range(len(data[:,0])-1) ]
+    delta = numpy.min(deltas)
+    #
+    alpha = -numpy.log( delta*numpy.sum( numpy.exp(data[:,1]) ) )
+    # ... I can't compute the error over alpha because exp(data^2) is too big
+    #sigma_alpha = numpy.sqrt( (data[:,2]*data[:,2])*numpy.exp(data[:,1]*data[:,1]))
+    #sigma_alpha = sigma_alpha/numpy.sum( numpy.exp(data[:,1]) )
+    #
+    data[:,1] = data[:,1] + alpha
+    #data[:,2] = numpy.sqrt(data[:,2]*data[:,2] + sigma_alpha*sigma_alpha)
     #
     fig = pp.figure()
     ax  = fig.add_subplot(111)
     ax.plot(data[:,0], data[:,1] ,".",ms=10, label="numerical" )
     ax.plot( data_exact[:,0],numpy.log(data_exact[:,1]), "-", linewidth=2.0 , label="exact")
-    ax.errorbar(ising1D.wl_new.logdosf[:,0],data,yerr = sigma,fmt=None)
+    if (sigma):
+        ax.errorbar( data[:,0],data[:,1],yerr = data[:,2],fmt=None)
     leg = ax.legend(loc=0)
     #
     [t.set_fontsize(20) for t in leg.get_texts()]
@@ -89,14 +105,22 @@ def plot():
 ##    for i in (range(len(sigma))):
 ##        if (sigma[i] == 0.0 ):
 ##            print "errore",i
-##  
-    err = numpy.abs((data[:,1] - numpy.log(data_exact[:,1]) ))/data[:,2]
-    rel_err = numpy.log( err )
+##
+    # skip the first data because has zero sigma
+    if (not sigma):
+        err = numpy.abs( ( data[1:,1] - numpy.log(data_exact[1:,1]) )/data[1:,1] )
+        rel_err = numpy.log( err )
+    else:
+        rel_err = numpy.abs( ( data[1:,1] - numpy.log(data_exact[1:,1]) )/data[1:,2] )
+
 
     ax3 = pp.axes( [ 0.5 , 0.2 , 0.35 , 0.35 ] )
-    ax3.plot( data_exact[:,0], rel_err, 'go')
+    ax3.plot( data_exact[1:,0], rel_err, 'go')
     ax3.set_xlabel(r"$M_z$")
-    ax3.set_ylabel(r"$\log \epsilon$")
+    if (not sigma):
+        ax3.set_ylabel(r"$\log \epsilon$")
+    else:
+        ax3.set_ylabel(r"$\epsilon/\sigma$")
 
 #    ax3.set_xlim(-0.8,0.8)
 #    ax3.set_xticks( [-0.5,0,0.5] )
