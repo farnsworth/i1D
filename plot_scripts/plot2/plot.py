@@ -17,35 +17,44 @@ from  time import sleep,time
 from matplotlib import rc
 rc('text', usetex=True)
 
-def calc(h0 , h, l, nsim, mnbins, threshold = 0.2, accuracy = 1.0e-6):
+def calc( h0, h, l, deltae , nsim, mnbins, threshold = 0.2, accuracy = 1.0e-6):
     #
     print "...Doing calculation..."
     #
     # ... setting parameters
     ising1D.system.l = l
-    ising1D.system.h = h
     ising1D.system.h0 = h0
+    ising1D.system.h = h
     ising1D.system.datadir[:len(datadir)] = datadir
     ising1D.wl_new.threshold = threshold
     ising1D.wl_new.accuracy = accuracy
     #
-    # ... random seed
-    random_seed = numpy.random.random_integers(2024, size=8)
+    meanE = system.E0(h0,h,l)
     #
     # ... first calculation
-    ising1D.wl_new.wl_mdiag(mnbins, random_seed )
+    #
+    # ... random seed
+    random_seed = numpy.random.random_integers(2024, size=8)
+    out = ising1D.wl.wl_mdos(meanE,deltae,mnbins, random_seed,False)
+    if (out != 0):
+      print "some error in the calcualtion!"
+  
 #    delta = ising1D.wl_new.delta
 #    res = utilities.HistoFromLog(ising1D.wl_new.logdosf[:,1],delta)
-    res = ising1D.wl_new.logdosf[:,1]
+    res = ising1D.wl.logdosf[:,1]
     #
+    xdata = ising1D.wl.logdosf[:,0].copy()
     data = res.copy()
     data2 = data*data
-
+    #
     for i in range(nsim-1):
         random_seed = numpy.random.random_integers(2024, size=8)
-        ising1D.wl_new.wl_mdiag(mnbins, random_seed )
+        out = ising1D.wl.wl_mdos( meanE,deltae,mnbins, random_seed,False)
 #        res = utilities.HistoFromLog(ising1D.wl_new.logdosf[:,1],delta)
-        res = ising1D.wl_new.logdosf[:,1]
+        res = ising1D.wl.logdosf[:,1].copy()
+        if (len(res) != len(xdata)):
+            print "Error: different length of results"
+            return
         data = data + res
         data2 = data2 + res*res
     #
@@ -54,11 +63,14 @@ def calc(h0 , h, l, nsim, mnbins, threshold = 0.2, accuracy = 1.0e-6):
     data2 = data2/numpy.float(nsim)
     sigma = numpy.sqrt( data2 - data*data )/numpy.sqrt(numpy.float(nsim))
     # ... exact calculation
-    ising1D.quench.mag_dist_calc( mnbins )
-    data_exact = ising1D.quench.dist.copy()
+    ising1D.quench.sigma_mag_quench2(meanE, deltae, mnbins )
+    data_exact = []
+    for i in range(len(ising1D.quench.dist[:,0])):
+        if (ising1D.quench.dist[i,1] > 0.0):
+            data_exact.append( ising1D.quench.dist[i,:] )
     #
     # save data for plot
-    numpy.savetxt( datadir+'/data_num.dat',numpy.column_stack( (ising1D.wl_new.logdosf[:,0],data,sigma) ) , fmt='%.18e')
+    numpy.savetxt( datadir+'/data_num.dat',numpy.column_stack( (ising1D.wl.logdosf[:,0],data,sigma) ) , fmt='%.18e')
     #
     numpy.savetxt( datadir+'/data_exact.dat', data_exact,fmt='%.18e')
     #
@@ -94,12 +106,12 @@ def plot(sigma = False):
     ax.plot(data[:,0], data[:,1] ,".",ms=10, label="numerical" )
     ax.plot( data_exact[:,0],numpy.log(data_exact[:,1]), "-", linewidth=2.0 , label="exact")
     if (sigma):
-        ax.errorbar( data[:,0],data[:,1],yerr = data[:,2],fmt=None)
-    leg = ax.legend(loc=0)
+        ax.errorbar( data[:,0],data[:,1],yerr = data[:,2] )#,fmt=None)
+    leg = ax.legend(loc=1)
     #
-    [t.set_fontsize(20) for t in leg.get_texts()]
+    [t.set_fontsize(15) for t in leg.get_texts()]
     ax.set_xlabel(r"$M_z$",fontsize=25)
-    ax.set_ylabel(r"$\log P_\mathrm{D}$",fontsize=25 )
+    ax.set_ylabel(r"$\log P_\mathrm{mc}$",fontsize=25 )
     [i.set_fontsize(15) for i in ax.get_xticklabels() + ax.get_yticklabels()]
 ##
 ##    for i in (range(len(sigma))):
@@ -114,7 +126,7 @@ def plot(sigma = False):
         rel_err = numpy.abs( ( data[1:,1] - numpy.log(data_exact[1:,1]) )/data[1:,2] )
 
 
-    ax3 = pp.axes( [ 0.5 , 0.2 , 0.35 , 0.35 ] )
+    ax3 = pp.axes( [ 0.35 , 0.2 , 0.35 , 0.35 ] )
     ax3.plot( data_exact[1:,0], rel_err, 'go')
     ax3.set_xlabel(r"$M_z$")
     if (not sigma):
