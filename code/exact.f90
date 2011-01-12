@@ -478,64 +478,231 @@ CONTAINS
   !
   ! ... Correlation function in the x direction for all alpha states with simmetry k,-k
   !
-!  SUBROUTINE corralpha_calc (l)
+  SUBROUTINE corralpha_calc (d)
     !
-!    IMPLICIT NONE
+    IMPLICIT NONE
     !
-!    REAL(kind = 8), DIMENSION (:,:), ALLOCATABLE :: matrix
-!    REAL(kind = 8) :: mgs, k
-!    INTEGER :: i,j
+    INTEGER, INTENT(IN) :: d
+    INTEGER :: i,j
+    LOGICAL, DIMENSION(L) :: state
+    REAL(kind = dp), DIMENSION (L) :: evect
+    REAL(kind = dp) :: ener,k
     !
-!    ALLOCATE( mvect(L/2) )
+    IF (allocated(real_array)) deallocate(real_array)
+    ALLOCATE( real_array( 2, 2**L ) )
     !
-!    mgs = 0.0_dp
+    real_array = 0.0_dp
     !
-!    DO i=1,L/2
-!       !
-!       k = (pi*dble(2*i-1))/dble(L)
-!       mvect(i) = sigmaz( k )/dble(L)
-!       mgs = mgs - mvect(i)
+    ener = 0.0_dp
+    !
+    DO i=1,L/2
        !
-!    END DO
-    !
-!    IF (allocated(obs)) deallocate(obs)
-!    ALLOCATE( obs( 2**(L/2) ))
-    !
-!    obs(:) = mgs
-    !
-!    DO i=0,2**(L/2)-1
+       k = (pi*dble(2*i-1))/dble(L)
        !
-!       DO j=1,L/2
-!          IF ( btest(i,j-1) ) THEN
-!             obs(i+1) = obs(i+1) + 2.0_dp*mvect(j)
-!          END IF
-!       END DO
+       evect(L/2 + i) = energy(k,h,gamma)
+       evect(L/2 - i + 1) = evect(L/2 + i)
        !
-!    END DO
+       ener = ener - evect(L/2 + i)
+       !
+    ENDDO
     !
-!    PRINT '(x,a,e10.2,a)','estimate use of RAM:',(8.0_dp/1048576.0_dp)*dble(2**(L/2))," Mb"
+    ener = ener/dble(L)
+    evect = evect/dble(L)
     !
-!    DEALLOCATE(mvect)
+    real_array( 1 , : ) = ener
     !
-!  END SUBROUTINE corralpha_calc
+    DO i=0,2**L-1
+       !
+       state = .false.
+       !
+       DO j=1,L
+          IF ( btest(i,j-1) ) THEN
+             state(j) = .true.
+             real_array(1,i+1) = real_array(1,i+1) + evect(j)
+          END IF
+       END DO
+       !
+       ! 
+       real_array(2,i+1) = xxcorrelation(d,state,L)
+       !
+    END DO
+    !
+    !
+  END SUBROUTINE corralpha_calc
   !
   !
-  FUNCTION BiAj(i,j,state)
+  ! ... i must use size because f2py has some problem
+  ! ... in using an array of size L (variable inside system)
+  FUNCTION xxcorrelation(d, state, size )
     !
-    INTEGER, INTENT(IN) :: i,j,state
+    INTEGER, INTENT(IN) :: d
+    INTEGER, INTENT(IN) :: size
+    LOGICAL, INTENT(IN), DIMENSION(size) :: state
+    COMPLEX(kind = dp), DIMENSION ((4*d-2),(4*d-2)) :: matrix
+    INTEGER :: j,k,delta,info,icol,irow,sign
+    INTEGER,DIMENSION(4*d-2) :: pivot
+    COMPLEX(kind = dp) :: det
+    !
+    REAL(kind= dp) :: xxcorrelation
+    !
+    !
+    matrix = (0.0_dp,0.0_dp)
+    det = (1.0_dp,0.0_dp)
+    !
+    ! to optimize this definition i can compute before vectors of BiAj, AiAj
+    ! k is the row, l the column 
+    DO k=1,2*d-1
+       ! diagonal block
+       irow = 2*k
+       matrix( irow-1, irow   ) =  BiAj(1,state,size)
+       matrix( irow  , irow-1 ) = -BiAj(1,state,size)
+       !
+       IF (k<2*d-1) THEN
+          !
+          DO j=k+1,2*d-1
+             delta = j-k
+             icol = 2*j
+             matrix(irow-1,icol-1) = BiBj(delta,state,size) 
+             matrix(irow-1,icol) = BiAj(delta+1,state,size)
+             matrix(irow,icol-1) = -BiAj(-delta+1,state,size)
+             matrix(irow,icol) = AiAj(delta,state,size)
+! it is a skew-symmetric matrix
+             matrix(icol-1,irow-1) = - matrix(irow-1,icol-1) 
+             matrix(icol,irow-1) = - matrix(irow-1,icol)
+             matrix(icol-1,irow) = - matrix(irow,icol-1)
+             matrix(icol,irow) = - matrix(irow,icol)
+          ENDDO
+          !
+       ENDIF
+       !
+    ENDDO
+    !
+    ! calculation of the determinant
+    info = 1
+    !
+    pivot = 0
+    !
+    CALL zgetrf(4*d-2,4*d-2,matrix,4*d-2,pivot,info)
+    !
+    !print*,"info",info,"pivot",pivot
+    !
+    ! compute the determinant
+    !
+    DO k=1,4*d-2
+       det = det*matrix(k,k)
+    ENDDO
+    !
+    ! compute the sign of the determiant
+    !
+    sign = 0
+    DO k=1,4*d-2
+       IF ( pivot(k) /= k) sign = sign +1
+    END DO
+    !
+    IF (mod(sign,2) == 1) THEN
+       det = -det
+    END IF
+    !
+    !print*,"determinant",det
+    !
+    xxcorrelation = dsqrt(dble(det))
+    !
+    !
+  END FUNCTION xxcorrelation
+  !
+  !
+  !
+  FUNCTION BiAj(d,state,size)
+    !
+    INTEGER, INTENT(IN) :: size
+    INTEGER, INTENT(IN) :: d
+    LOGICAL, INTENT(IN), DIMENSION(size) :: state
+    COMPLEX (kind=dp) :: BiAj
+    !
+    INTEGER :: i_tmp,term
+    REAL(kind=dp) :: k,e,res
+    !
+    res = 0.0_dp
+    !
+    DO i_tmp=1,L/2
+       !
+       k = (pi*dble(2*i_tmp-1))/dble(L)
+       e = energy(k,h,gamma)
+       term = 1
+       !
+       IF (state(L/2 - i_tmp + 1)) term = term - 1
+       IF (state(L/2 + i_tmp)) term = term - 1
+       !
+       SELECT CASE (term)
+       CASE(-1) 
+          res = res + ( - dcos( k*dble(d-1) ) + h * dcos(k*dble(d) ) )/e
+       CASE(1) 
+          res = res + ( dcos( k*dble(d-1) ) - h * dcos(k*dble(d)) )/e
+       END SELECT
+       !
+    ENDDO
+    !
+    res = res*4.0_dp/dble(L)
+    !
+    BiAj = res*( 1.0_dp, 0.0_dp )
     !
   END FUNCTION BiAj
   !
   !
-  FUNCTION AiAj(i,j,state)
+  FUNCTION AiAj(d,state,size)
     !
-    INTEGER, INTENT(IN) :: i,j,state
-    COMPLEX(kind=dp) :: AiAj
+    INTEGER, INTENT(IN) :: d
+    INTEGER, INTENT(IN) :: size
+    LOGICAL, INTENT(IN), DIMENSION(size) :: state
+    COMPLEX (kind=dp) :: AiAj
     !
-!    IF (i==j) return 1.0_dp,0.0_dp
+    INTEGER :: i_tmp,term,sign
+    REAL(kind=dp) :: k,res
+    !
+    res = 0.0_dp
+    !
+    !
+    IF ( mod(d,L) /= 0 ) THEN
+       DO i_tmp=1,L/2
+          !
+          k = (pi*dble(2*i_tmp-1))/dble(L)
+          !
+          term = 0
+          !
+          IF (state(L/2 - i_tmp + 1)) term = term - 1
+          IF (state(L/2 + i_tmp)) term = term + 1
+          !
+          SELECT CASE (term)
+          CASE(-1) 
+             res = res - dsin(k*dble(d))
+          CASE(1) 
+             res = res + dsin(k*dble(d))
+          END SELECT
+          !
+       ENDDO
+       !
+       res = 2.0_dp*res/dble(L)
+       AiAj = res*(0.0_dp,1.0_dp)
+       !
+    ELSE
+       ! ... the sign is due to antiperiodic boundary condition
+       sign = (-1)**(d/L)
+       AiAj = dble(sign)*(1.0_dp,0.0_dp)
+    ENDIF
+    !
   END FUNCTION AiAj
   !
   !
+  FUNCTION BiBj(d,state,size)
+    !
+    INTEGER, INTENT(IN) :: d
+    INTEGER, INTENT(IN) :: size
+    LOGICAL, INTENT(IN), DIMENSION(size) :: state
+    COMPLEX (kind=dp) :: BiBj 
+    !
+    BiBj = -AiAj(d,state,size)
+    !
+  END FUNCTION BiBj
   !
   !
 END MODULE exact

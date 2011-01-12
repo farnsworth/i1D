@@ -5,3 +5,8 @@ plot1: it does a comparison with numerical and exaustive enumeration of P_D
 
 plot2: the same of plot1 but for P_mc
 
+plot3: calculation of the absolute value of the correlation function in the x direction
+       for ALL the states. Here I'm using the algorithm with pfaffian (abs!!!)
+
+plot4: still to do, bu the same of plot3 putting the -k,k symmetry
+
