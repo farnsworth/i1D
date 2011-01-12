@@ -15,6 +15,8 @@ MODULE wl_new
   !
 CONTAINS
   !
+  ! ... here we use a gaussian instead of a step function
+  ! ... probably doesn't have a big gain
   !
   FUNCTION wl_mdos( ener, deltae, mnbin, seed, readconf )
     !
@@ -937,7 +939,7 @@ CONTAINS
     SUBROUTINE update
       IMPLICIT NONE
       !
-      INTEGER :: i_tmp
+!      INTEGER :: i_tmp
       REAL (kind=8) :: c2alpha
       !
       c2alpha = 1.0d0
