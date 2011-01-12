@@ -476,7 +476,7 @@ CONTAINS
   END SUBROUTINE mag_array_calc_allspace
   !
   !
-  ! ... Correlation function in the x direction for all alpha states with simmetry k,-k
+  ! ... Correlation function in the x direction for all alpha states
   !
   SUBROUTINE corralpha_calc (d)
     !
@@ -529,6 +529,64 @@ CONTAINS
     !
     !
   END SUBROUTINE corralpha_calc
+  !
+  !
+  !
+  ! ... Correlation function in the x direction for all alpha states
+  ! ... with the simmetry k,-k
+  !
+  SUBROUTINE corralpha_calc_simp (d)
+    !
+    IMPLICIT NONE
+    !
+    INTEGER, INTENT(IN) :: d
+    INTEGER :: i,j
+    LOGICAL, DIMENSION(L/2) :: state
+    REAL(kind = dp), DIMENSION (L/2) :: evect
+    REAL(kind = dp) :: ener,k
+    !
+    IF (allocated(real_array)) deallocate(real_array)
+    ALLOCATE( real_array( 2, 2**(L/2) ) )
+    !
+    real_array = 0.0_dp
+    !
+    ener = 0.0_dp
+    !
+    DO i=1,L/2
+       !
+       k = (pi*dble(2*i-1))/dble(L)
+       !
+       evect( i ) = energy(k,h,gamma)
+       !
+       ener = ener - evect( i )
+       !
+    ENDDO
+    !
+    ener = ener/dble(L)
+    evect = evect/dble(L)
+    !
+    real_array( 1 , : ) = ener
+    !
+    DO i=0,2**(L/2)-1
+       !
+       state = .false.
+       !
+       DO j=1,L/2
+          !
+          IF ( btest(i,j-1) ) THEN
+             state(j) = .true.
+             real_array(1,i+1) = real_array(1,i+1) + 2.0*evect(j)
+          END IF
+          !
+       END DO
+       !
+       ! 
+       real_array(2,i+1) = xxcorrelation_simp(d,state,L/2)
+       !
+    END DO
+    !
+    !
+  END SUBROUTINE corralpha_calc_simp
   !
   !
   ! ... i must use size because f2py has some problem
@@ -609,6 +667,109 @@ CONTAINS
     !
     !
   END FUNCTION xxcorrelation
+  !
+  !
+  ! ... does a calculation of the correlation for states with 
+  ! ... symmetric occupation k -k
+  !
+  FUNCTION xxcorrelation_simp(d, state, size )
+    !
+    INTEGER, INTENT(IN) :: d
+    INTEGER, INTENT(IN) :: size
+    LOGICAL, INTENT(IN), DIMENSION(size) :: state
+    REAL(kind = dp), DIMENSION ( d, d ) :: matrix
+    REAL(kind=dp), DIMENSION (-d+2:d ) :: vectorBiAj
+    INTEGER :: j,k,info,sign
+    INTEGER,DIMENSION(d) :: pivot
+    REAL(kind = dp) :: det
+    !
+    REAL(kind= dp) :: xxcorrelation_simp
+    !
+    !
+    matrix = 0.0_dp
+    det = 1.0_dp
+    !
+    DO k=-d+2,d
+       !
+       vectorBiAj(k) = BiAj_simp(k,state,size)
+       !
+    ENDDO
+    !
+    DO k=1,d
+       !
+       DO j=1,d
+          !
+          matrix( k , j ) =  vectorBiAj( j - k + 1 )
+          !
+       ENDDO
+       !
+    ENDDO
+    !
+    ! calculation of the determinant
+    info = 1
+    !
+    pivot = 0
+    !
+    !print*,"matrix",matrix
+    !
+    CALL dgetrf( d , d ,matrix, d , pivot,info)
+    !
+    !print*,"info",info,"pivot",pivot
+    !
+    ! compute the determinant
+    !
+    DO k=1,d
+       det = det*matrix(k,k)
+    ENDDO
+    !
+    ! compute the sign of the determiant
+    !
+    sign = 0
+    DO k=1, d
+       IF ( pivot(k) /= k) sign = sign +1
+    END DO
+    !
+    IF (mod(sign,2) == 1) THEN
+       det = -det
+    END IF
+    !
+    !print*,"determinant",det
+    !
+    xxcorrelation_simp = det
+    !
+  END FUNCTION xxcorrelation_simp
+  !
+  !
+  FUNCTION BiAj_simp(d,state,size)
+    !
+    INTEGER, INTENT(IN) :: size
+    INTEGER, INTENT(IN) :: d
+    LOGICAL, INTENT(IN), DIMENSION(size) :: state
+    COMPLEX (kind=dp) :: BiAj_simp
+    !
+    INTEGER :: i_tmp
+    REAL(kind=dp) :: k,e,res
+    !
+    res = 0.0_dp
+    !
+    DO i_tmp=1,L/2
+       !
+       k = (pi*dble(2*i_tmp-1))/dble(L)
+       e = energy(k,h,gamma)
+       !
+       ! non riesco a capire perche' il segno e' questo
+       !
+       IF (state(i_tmp)) THEN
+          res = res - ( dcos( k*dble(d-1) ) - h * dcos(k*dble(d) ) )/e
+       ELSE
+          res = res - ( - dcos( k*dble(d-1) ) + h * dcos(k*dble(d)) )/e
+       ENDIF
+       !
+    ENDDO
+    !
+    BiAj_simp = res*4.0_dp/dble(L)
+    !
+  END FUNCTION BiAj_simp
   !
   !
   !
