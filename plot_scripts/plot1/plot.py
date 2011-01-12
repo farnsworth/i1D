@@ -1,10 +1,11 @@
 
 import sys
 import os
-sys.path.append('../../libs/')
-sys.path.append('../../')
 
-datadir=os.getcwd()
+datadir = os.path.dirname(os.path.abspath(__file__))
+
+sys.path.append(datadir+'/../../libs/')
+sys.path.append(datadir+'/../../')
 
 import numpy
 import math
