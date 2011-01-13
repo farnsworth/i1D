@@ -157,5 +157,282 @@ CONTAINS
     !
   END SUBROUTINE warning
   !
+  ! ... at given eigenstate it gives the correlation:
+  !        xxcorrelation : for any eigenstate
+  !        xxcorrelation_red : reduced space (only state with simmetry k,-k)
+  !
+    ! ... i must use size because f2py has some problem
+  ! ... in using an array of size L (variable inside system)
+  FUNCTION xxcorrelation(d, state, size )
+    !
+    INTEGER, INTENT(IN) :: d
+    INTEGER, INTENT(IN) :: size
+    LOGICAL, INTENT(IN), DIMENSION(size) :: state
+    COMPLEX(kind = dp), DIMENSION ((2*d),(2*d)) :: matrix
+    INTEGER :: j,k,delta,info,icol,irow,sign
+    INTEGER,DIMENSION(2*d) :: pivot
+    COMPLEX(kind = dp) :: det
+    !
+    REAL(kind= dp) :: xxcorrelation
+    !
+    !
+    matrix = (0.0_dp,0.0_dp)
+    det = (1.0_dp,0.0_dp)
+    !
+    ! to optimize this definition i can compute before vectors of BiAj, AiAj
+    ! k is the row, l the column 
+    DO k=1,d
+       ! diagonal block
+       irow = 2*k
+       matrix( irow-1, irow   ) =  BiAj(1,state,size)
+       matrix( irow  , irow-1 ) = -BiAj(1,state,size)
+       !
+       IF (k < d) THEN
+          !
+          DO j=k+1, d
+             delta = j-k
+             icol = 2*j
+             matrix(irow-1,icol-1) = BiBj(delta,state,size) 
+             matrix(irow-1,icol) = BiAj(delta+1,state,size)
+             matrix(irow,icol-1) = -BiAj(-delta+1,state,size)
+             matrix(irow,icol) = AiAj(delta,state,size)
+! it is a skew-symmetric matrix
+             matrix(icol-1,irow-1) = - matrix(irow-1,icol-1) 
+             matrix(icol,irow-1) = - matrix(irow-1,icol)
+             matrix(icol-1,irow) = - matrix(irow,icol-1)
+             matrix(icol,irow) = - matrix(irow,icol)
+          ENDDO
+          !
+       ENDIF
+       !
+    ENDDO
+    !
+    ! calculation of the determinant
+    info = 1
+    !
+    pivot = 0
+    !
+    CALL zgetrf(2*d,2*d,matrix,2*d,pivot,info)
+    !
+    !print*,"info",info,"pivot",pivot
+    !
+    ! compute the determinant
+    !
+    DO k=1,2*d
+       det = det*matrix(k,k)
+    ENDDO
+    !
+    ! compute the sign of the determiant
+    !
+    sign = 0
+    DO k=1,2*d
+       IF ( pivot(k) /= k) sign = sign +1
+    END DO
+    !
+    IF (mod(sign,2) == 1) THEN
+       det = -det
+    END IF
+    !
+    !
+    xxcorrelation = dsqrt(dble(det))
+    !
+    !
+  END FUNCTION xxcorrelation
+  !
+  !
+  ! ... does a calculation of the correlation for states with 
+  ! ... symmetric occupation k -k
+  !
+  FUNCTION xxcorrelation_red(d, state, size )
+    !
+    INTEGER, INTENT(IN) :: d
+    INTEGER, INTENT(IN) :: size
+    LOGICAL, INTENT(IN), DIMENSION(size) :: state
+    REAL(kind = dp), DIMENSION ( d, d ) :: matrix
+    REAL(kind=dp), DIMENSION (-d+2:d ) :: vectorBiAj
+    INTEGER :: j,k,info,sign
+    INTEGER,DIMENSION(d) :: pivot
+    REAL(kind = dp) :: det
+    !
+    REAL(kind= dp) :: xxcorrelation_red
+    !
+    !
+    matrix = 0.0_dp
+    det = 1.0_dp
+    !
+    DO k=-d+2,d
+       !
+       vectorBiAj(k) = BiAj_red(k,state,size)
+       !
+    ENDDO
+    !
+    DO k=1,d
+       !
+       DO j=1,d
+          !
+          matrix( k , j ) =  vectorBiAj( j - k + 1 )
+          !
+       ENDDO
+       !
+    ENDDO
+    !
+    ! calculation of the determinant
+    info = 1
+    !
+    pivot = 0
+    !
+    !
+    CALL dgetrf( d , d ,matrix, d , pivot,info)
+    !
+    !
+    !print*,"info",info,"pivot",pivot
+    !
+    ! compute the determinant
+    !
+    DO k=1,d
+       det = det*matrix(k,k)
+    ENDDO
+    !
+    ! compute the sign of the determiant
+    !
+    sign = 0
+    DO k=1, d
+       IF ( pivot(k) /= k) sign = sign +1
+    END DO
+    !
+    IF (mod(sign,2) == 1) THEN
+       det = -det
+    END IF
+    !
+    xxcorrelation_red = det
+    !
+  END FUNCTION xxcorrelation_red
+  !
+  !
+  !
+  FUNCTION BiAj(d,state,size)
+    !
+    INTEGER, INTENT(IN) :: size
+    INTEGER, INTENT(IN) :: d
+    LOGICAL, INTENT(IN), DIMENSION(size) :: state
+    COMPLEX (kind=dp) :: BiAj
+    !
+    INTEGER :: i_tmp,term
+    REAL(kind=dp) :: k,e,res
+    !
+    res = 0.0_dp
+    !
+    DO i_tmp=1,L/2
+       !
+       k = (pi*dble(2*i_tmp-1))/dble(L)
+       e = energy(k,h,gamma)
+       term = 1
+       !
+       IF (state(L/2 - i_tmp + 1)) term = term - 1
+       IF (state(L/2 + i_tmp)) term = term - 1
+       !
+       SELECT CASE (term)
+       CASE(-1) 
+          res = res + ( - dcos( k*dble(d-1) ) + h * dcos(k*dble(d) ) )/e
+       CASE(1) 
+          res = res + ( dcos( k*dble(d-1) ) - h * dcos(k*dble(d)) )/e
+       END SELECT
+       !
+    ENDDO
+    !
+    res = res*4.0_dp/dble(L)
+    !
+    BiAj = res*( 1.0_dp, 0.0_dp )
+    !
+  END FUNCTION BiAj
+  !
+  !
+  FUNCTION AiAj(d,state,size)
+    !
+    INTEGER, INTENT(IN) :: d
+    INTEGER, INTENT(IN) :: size
+    LOGICAL, INTENT(IN), DIMENSION(size) :: state
+    COMPLEX (kind=dp) :: AiAj
+    !
+    INTEGER :: i_tmp,term,sign
+    REAL(kind=dp) :: k,res
+    !
+    res = 0.0_dp
+    !
+    !
+    IF ( mod(d,L) /= 0 ) THEN
+       DO i_tmp=1,L/2
+          !
+          k = (pi*dble(2*i_tmp-1))/dble(L)
+          !
+          term = 0
+          !
+          IF (state(L/2 - i_tmp + 1)) term = term - 1
+          IF (state(L/2 + i_tmp)) term = term + 1
+          !
+          SELECT CASE (term)
+          CASE(-1) 
+             res = res - dsin(k*dble(d))
+          CASE(1) 
+             res = res + dsin(k*dble(d))
+          END SELECT
+          !
+       ENDDO
+       !
+       res = 2.0_dp*res/dble(L)
+       AiAj = res*(0.0_dp,1.0_dp)
+       !
+    ELSE
+       ! ... the sign is due to antiperiodic boundary condition
+       sign = (-1)**(d/L)
+       AiAj = dble(sign)*(1.0_dp,0.0_dp)
+    ENDIF
+    !
+  END FUNCTION AiAj
+  !
+  !
+  FUNCTION BiBj(d,state,size)
+    !
+    INTEGER, INTENT(IN) :: d
+    INTEGER, INTENT(IN) :: size
+    LOGICAL, INTENT(IN), DIMENSION(size) :: state
+    COMPLEX (kind=dp) :: BiBj 
+    !
+    BiBj = -AiAj(d,state,size)
+    !
+  END FUNCTION BiBj
+  !
+  !
+  FUNCTION BiAj_red(d,state,size)
+    !
+    INTEGER, INTENT(IN) :: size
+    INTEGER, INTENT(IN) :: d
+    LOGICAL, INTENT(IN), DIMENSION(size) :: state
+    COMPLEX (kind=dp) :: BiAj_red
+    !
+    INTEGER :: i_tmp
+    REAL(kind=dp) :: k,e,res
+    !
+    res = 0.0_dp
+    !
+    DO i_tmp=1,L/2
+       !
+       k = (pi*dble(2*i_tmp-1))/dble(L)
+       e = energy(k,h,gamma)
+       !
+       ! non riesco a capire perche' il segno e' questo
+       !
+       IF (state(i_tmp)) THEN
+          res = res - ( dcos( k*dble(d-1) ) - h * dcos(k*dble(d) ) )/e
+       ELSE
+          res = res - ( - dcos( k*dble(d-1) ) + h * dcos(k*dble(d)) )/e
+       ENDIF
+       !
+    ENDDO
+    !
+    BiAj_red = res*4.0_dp/dble(L)
+    !
+  END FUNCTION BiAj_red
+  !
   !
 END MODULE system

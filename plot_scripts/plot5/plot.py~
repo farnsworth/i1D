@@ -28,7 +28,7 @@ def calc( d, h, l ):
     ising1D.system.datadir[:len(datadir)] = datadir
     #
     # ... doing calculation
-    ising1D.exact.corralpha_calc_red(d)
+    ising1D.exact.corralpha_calc(d)
     #
     # ... saving data
     #
@@ -47,5 +47,5 @@ def plot():
     fig = pp.figure()
     ax  = fig.add_subplot(111)
     ax.plot(data[:,0], data[:,1] ,".",ms=10, label="numerical" )
-    #
+
     return
