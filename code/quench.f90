@@ -677,5 +677,93 @@ CONTAINS
   END FUNCTION sigma_kink_quench
   !
   !
+  FUNCTION long_time_BiAj (d)
+    !
+    INTEGER, INTENT(IN) :: d
+    REAL (kind = 8) :: long_time_BiAj, term, k,ek,e0k
+    !
+    long_time_BiAj = 0.0_dp
+    !
+    DO i_tmp=1,L/2
+       !
+       k = (pi*dble(2*i_tmp-1))/dble(L)
+       ek = energy(k,h,gamma)
+       e0k = energy(k,h0,gamma)
+       !
+       term = (- h0*dcos(k*dble(d))+dcos(k*dble(d-1)))/e0k
+       term = term + 4.0d0*dsin(k)*(h0-h)*(h*dsin(k*dble(d)) - dsin(k*dble(d-1)) )/(e0k*ek*ek)
+       !
+       long_time_BiAj = long_time_BiAj + term
+       !
+    ENDDO
+    !
+    long_time_BiAj = 4.0_dp * long_time_BiAj / dble(L)
+    !
+  END FUNCTION long_time_BiAj
+  !
+  !
+  FUNCTION long_time_xxcorrelation (d )
+    !
+    INTEGER, INTENT(IN) :: d
+    REAL(kind = dp), DIMENSION ( d, d ) :: matrix
+    REAL(kind=dp), DIMENSION (-d+2:d ) :: vectorBiAj
+    INTEGER :: j,k,info,sign
+    INTEGER,DIMENSION(d) :: pivot
+    REAL(kind = dp) :: det
+    !
+    REAL(kind= 8) :: long_time_xxcorrelation
+    !
+    !
+    matrix = 0.0_dp
+    det = 1.0_dp
+    !
+    DO k=-d+2,d
+       !
+       vectorBiAj(k) = long_time_BiAj(k )
+       !
+    ENDDO
+    !
+    DO k=1,d
+       !
+       DO j=1,d
+          !
+          matrix( k , j ) =  vectorBiAj( j - k + 1 )
+          !
+       ENDDO
+       !
+    ENDDO
+    !
+    ! calculation of the determinant
+    info = 1
+    !
+    pivot = 0
+    !
+    !
+    CALL dgetrf( d , d ,matrix, d , pivot,info)
+    !
+    !
+    !print*,"info",info,"pivot",pivot
+    !
+    ! compute the determinant
+    !
+    DO k=1,d
+       det = det*matrix(k,k)
+    ENDDO
+    !
+    ! compute the sign of the determiant
+    !
+    sign = 0
+    DO k=1, d
+       IF ( pivot(k) /= k) sign = sign +1
+    END DO
+    !
+    IF (mod(sign,2) == 1) THEN
+       det = -det
+    END IF
+    !
+    long_time_xxcorrelation = det
+    !
+  END FUNCTION long_time_XXCORRELATION
+  !
   !
 END MODULE quench

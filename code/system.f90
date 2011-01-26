@@ -163,17 +163,17 @@ CONTAINS
   !
     ! ... i must use size because f2py has some problem
   ! ... in using an array of size L (variable inside system)
-  FUNCTION xxcorrelation(d, state, size )
+  FUNCTION xxcorrelation(d, state, size_in )
     !
     INTEGER, INTENT(IN) :: d
-    INTEGER, INTENT(IN) :: size
-    LOGICAL, INTENT(IN), DIMENSION(size) :: state
+    INTEGER, INTENT(IN) :: size_in
+    LOGICAL, INTENT(IN), DIMENSION(size_in) :: state
     COMPLEX(kind = dp), DIMENSION ((2*d),(2*d)) :: matrix
     INTEGER :: j,k,delta,info,icol,irow,sign
     INTEGER,DIMENSION(2*d) :: pivot
     COMPLEX(kind = dp) :: det
     !
-    REAL(kind= dp) :: xxcorrelation
+    REAL(kind= 8) :: xxcorrelation
     !
     !
     matrix = (0.0_dp,0.0_dp)
@@ -184,18 +184,18 @@ CONTAINS
     DO k=1,d
        ! diagonal block
        irow = 2*k
-       matrix( irow-1, irow   ) =  BiAj(1,state,size)
-       matrix( irow  , irow-1 ) = -BiAj(1,state,size)
+       matrix( irow-1, irow   ) =  BiAj(1,state,size_in)
+       matrix( irow  , irow-1 ) = -BiAj(1,state,size_in)
        !
        IF (k < d) THEN
           !
           DO j=k+1, d
              delta = j-k
              icol = 2*j
-             matrix(irow-1,icol-1) = BiBj(delta,state,size) 
-             matrix(irow-1,icol) = BiAj(delta+1,state,size)
-             matrix(irow,icol-1) = -BiAj(-delta+1,state,size)
-             matrix(irow,icol) = AiAj(delta,state,size)
+             matrix(irow-1,icol-1) = BiBj(delta,state,size_in) 
+             matrix(irow-1,icol) = BiAj(delta+1,state,size_in)
+             matrix(irow,icol-1) = -BiAj(-delta+1,state,size_in)
+             matrix(irow,icol) = AiAj(delta,state,size_in)
 ! it is a skew-symmetric matrix
              matrix(icol-1,irow-1) = - matrix(irow-1,icol-1) 
              matrix(icol,irow-1) = - matrix(irow-1,icol)
@@ -243,18 +243,18 @@ CONTAINS
   ! ... does a calculation of the correlation for states with 
   ! ... symmetric occupation k -k
   !
-  FUNCTION xxcorrelation_red(d, state, size )
+  FUNCTION xxcorrelation_red(d, state, size_in )
     !
     INTEGER, INTENT(IN) :: d
-    INTEGER, INTENT(IN) :: size
-    LOGICAL, INTENT(IN), DIMENSION(size) :: state
+    INTEGER, INTENT(IN) :: size_in
+    LOGICAL, INTENT(IN), DIMENSION(size_in) :: state
     REAL(kind = dp), DIMENSION ( d, d ) :: matrix
     REAL(kind=dp), DIMENSION (-d+2:d ) :: vectorBiAj
     INTEGER :: j,k,info,sign
     INTEGER,DIMENSION(d) :: pivot
     REAL(kind = dp) :: det
     !
-    REAL(kind= dp) :: xxcorrelation_red
+    REAL(kind= 8) :: xxcorrelation_red
     !
     !
     matrix = 0.0_dp
@@ -262,7 +262,7 @@ CONTAINS
     !
     DO k=-d+2,d
        !
-       vectorBiAj(k) = BiAj_red(k,state,size)
+       vectorBiAj(k) = BiAj_red(k,state,size_in)
        !
     ENDDO
     !
@@ -310,12 +310,12 @@ CONTAINS
   !
   !
   !
-  FUNCTION BiAj(d,state,size)
+  FUNCTION BiAj(d,state,size_in)
     !
-    INTEGER, INTENT(IN) :: size
+    INTEGER, INTENT(IN) :: size_in
     INTEGER, INTENT(IN) :: d
-    LOGICAL, INTENT(IN), DIMENSION(size) :: state
-    COMPLEX (kind=dp) :: BiAj
+    LOGICAL, INTENT(IN), DIMENSION(size_in) :: state
+    COMPLEX (kind=8) :: BiAj
     !
     INTEGER :: i_tmp,term
     REAL(kind=dp) :: k,e,res
@@ -347,12 +347,12 @@ CONTAINS
   END FUNCTION BiAj
   !
   !
-  FUNCTION AiAj(d,state,size)
+  FUNCTION AiAj(d,state,size_in)
     !
     INTEGER, INTENT(IN) :: d
-    INTEGER, INTENT(IN) :: size
-    LOGICAL, INTENT(IN), DIMENSION(size) :: state
-    COMPLEX (kind=dp) :: AiAj
+    INTEGER, INTENT(IN) :: size_in
+    LOGICAL, INTENT(IN), DIMENSION(size_in) :: state
+    COMPLEX (kind=8) :: AiAj
     !
     INTEGER :: i_tmp,term,sign
     REAL(kind=dp) :: k,res
@@ -391,24 +391,24 @@ CONTAINS
   END FUNCTION AiAj
   !
   !
-  FUNCTION BiBj(d,state,size)
+  FUNCTION BiBj(d,state,size_in)
     !
     INTEGER, INTENT(IN) :: d
-    INTEGER, INTENT(IN) :: size
-    LOGICAL, INTENT(IN), DIMENSION(size) :: state
-    COMPLEX (kind=dp) :: BiBj 
+    INTEGER, INTENT(IN) :: size_in
+    LOGICAL, INTENT(IN), DIMENSION(size_in) :: state
+    COMPLEX (kind=8) :: BiBj 
     !
-    BiBj = -AiAj(d,state,size)
+    BiBj = -AiAj(d,state,size_in)
     !
   END FUNCTION BiBj
   !
   !
-  FUNCTION BiAj_red(d,state,size)
+  FUNCTION BiAj_red(d,state,size_in)
     !
-    INTEGER, INTENT(IN) :: size
+    INTEGER, INTENT(IN) :: size_in
     INTEGER, INTENT(IN) :: d
-    LOGICAL, INTENT(IN), DIMENSION(size) :: state
-    COMPLEX (kind=dp) :: BiAj_red
+    LOGICAL, INTENT(IN), DIMENSION(size_in) :: state
+    COMPLEX (kind=8) :: BiAj_red
     !
     INTEGER :: i_tmp
     REAL(kind=dp) :: k,e,res

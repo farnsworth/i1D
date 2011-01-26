@@ -13,4 +13,8 @@ plot4: calculation of the correlation function in the x direction for the eigens
 
 plot5: comparison with the method of plot3 and plot4, to check the correctness of the calculations
 
-plot6: analysis for huge L and varing d, using reduced space calculation
+plot6: comparison between time average and canonical average of the transverse magnetization. It does a simple plot of the two quantities as a function of E
+
+plot7: plot of xx-corr as a function of d (non locality ) for various quenches
+
+plot8: calculation of the correlation length and plot of it
