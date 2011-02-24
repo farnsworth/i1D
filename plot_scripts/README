@@ -17,4 +17,24 @@ plot6: comparison between time average and canonical average of the transverse m
 
 plot7: plot of xx-corr as a function of d (non locality ) for various quenches
 
-plot8: calculation of the correlation length and plot of it
+plot8: calculation of the correlation length and plot of it (of fits and \xi as a function of h_0 and temperature)
+
+plot9: same of the previous point but at each step it ask the 
+       interval where to fit (useful for h,h0>1)
+       +++ added the gge calculation
+
+plot10: how xx-correlation change with d when there isn't a quench (just a verification of known results - Pfeuty article)
+
+plot12: comparison of the curves with results from semiclassical 
+	calculations (see Sachdev) for h<1 (plot of xi in function of temp) --- canonical calculations
+
+plot13: plot of time evolution and long time value of xxcorrelation at 
+	distance d. To check the effect of the distance from the quench
+	and if the "reduced calculation" (obtained with limit t->infty) is
+	valid
+
+plot14: same as plot 13 but now the plot is xxcorrelation as a function of d
+	at a given time in comparison with long time value
+
+plot15: plot of AiAj to try to understand the brak down for t larger than
+	a given t. (approx 125 for L=512)
