@@ -105,7 +105,7 @@ CONTAINS
     REAL(kind = dp), INTENT(IN) :: en,temp
     REAL(kind = dp) :: fermi_dist
     !
-    IF (temp == 0.0d0) THEN
+    IF (abs(temp) < 1.0d-6) THEN
        fermi_dist = 0.0d0
     ELSE
        fermi_dist = 1.0d0/( dexp(en/temp) + 1.0d0 )

@@ -112,3 +112,115 @@ def plot_append():
     pp.draw()
 
     return
+
+################ 1 --- specific calculation ##################
+
+def generate_plot1():
+    calc(2.0,1.25,[20,40,80],tmin=0.0, tmax = 150.0, l=500, npoints=2000 )
+    plot_with_zoom1(100,125,[20,40,80] )
+    return
+
+def plot_with_zoom1(fr,to, labels):
+    
+    h = 2.0
+    l = 500
+
+    data1 = numpy.loadtxt( datadir + '/data1.dat')
+    
+    fig = pp.figure()
+    ax  = fig.add_subplot(111)
+    ax.set_xlabel(r"$t$")
+    ax.set_ylabel(r"$\rho^{xx}_l$")
+    ax2 = fig.add_axes( (0.25,0.4,0.35,0.4) )
+    ax2.set_xlabel(r"$t$")
+    ax2.set_ylabel(r"$\rho^{xx}_l$")
+
+    for i in range(1,len(data1[0,:])):
+        line = ax.plot(data1[:,0], numpy.abs(data1[:,i]) ,"-",lw=2,label="l = "+str(labels[i-1]) )[0]
+        ax2.plot(data1[:,0], numpy.abs(data1[:,i]) ,"-",lw=2,color=line.get_color())
+        ax2.axvline(x=tstar(labels[i-1],l,h),lw=1.5,color=line.get_color(),linestyle="--")
+        ax.axvline(x=tstar(labels[i-1],l,h),lw=1.5,color=line.get_color(),linestyle="--")
+
+    ax2.set_xlim(fr,to)
+    ax2.set_ylim(top=0.03)
+    ax.legend()
+    pp.draw()
+
+    return
+
+#########################################################
+
+################ 2 --- specific calculation #############
+
+def generate_plot2():
+    calc(0.9,0.5,[20,40,80],tmin=0.0,tmax=300.0,l=500,npoints=300)
+    plot_with_zoom2(200,260,[20,40,80] )
+    return
+
+def plot_with_zoom2(fr,to, labels):
+    
+    h = 0.5
+    l = 500
+
+    data1 = numpy.loadtxt( datadir + '/data1.dat')
+    
+    fig = pp.figure()
+    ax  = fig.add_subplot(111)
+    ax.set_xlabel(r"$t$")
+    ax.set_ylabel(r"$\rho^{xx}_l$")
+    ax2 = fig.add_axes( (0.25,0.4,0.35,0.4) )
+    ax2.set_xlabel(r"$t$")
+    ax2.set_ylabel(r"$\rho^{xx}_l$")
+
+    for i in range(1,len(data1[0,:])):
+        line = ax.plot(data1[:,0], numpy.abs(data1[:,i]) ,"-",lw=2,label="l = "+str(labels[i-1]) )[0]
+        ax2.plot(data1[:,0], numpy.abs(data1[:,i]) ,"-",lw=2,color=line.get_color())
+        ax2.axvline(x=tstar(labels[i-1],l,h),lw=1.5,color=line.get_color(),linestyle="--")
+        ax.axvline(x=tstar(labels[i-1],l,h),lw=1.5,color=line.get_color(),linestyle="--")
+
+    ax2.set_xlim(fr,to)
+    ax2.set_ylim(top=0.25)
+    ax.legend()
+    pp.draw()
+
+    return
+
+#########################################################
+
+def tstar(d,l,h):
+    if (h>=1):
+        return float(l-d)/4.0
+    else:
+        return float(l-d)/(4.0*h)
+
+
+################# -- plot of fluctuations ##############
+
+def generate_plot3():
+    calc(2.0,1.25,[80,40,20],tmin=0.0, tmax = 1000.0, l=5000, npoints=5000 )
+    plot3( [80,40,20] )
+    return
+
+def plot3 ( labels ):
+    #
+    h0 = 2.0
+    h = 1.25
+    l = 5000
+    #
+    data1 = numpy.loadtxt( datadir + '/data1.dat')
+    data3 = numpy.loadtxt( datadir + '/data3.dat')
+    
+    fig = pp.figure()
+    ax  = fig.add_subplot(111)
+    ax.set_xlabel(r"$t$")
+    ax.set_ylabel(r"$\frac{\rho^{xx}_l(t) - <\rho^{xx}_l>_\mathrm{D}}{<\rho^{xx}_l>_\mathrm{D}}$")
+
+    for i in range(1,len(data1[0,:])):
+        ax.plot(data1[:,0], numpy.abs((data1[:,i]-data3[:,i])/data3[:,i]) ,"-",lw=2,label="l = "+str(labels[i-1]) )[0]
+
+    ax.legend()
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    pp.draw()
+
+    return

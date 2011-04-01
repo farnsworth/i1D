@@ -8,8 +8,8 @@ plot2: the same of plot1 but for P_mc
 plot3: calculation of the absolute value of the correlation function in the x direction
        for ALL the states. Here I'm using the algorithm with pfaffian (abs!!!)
 
-plot4: calculation of the correlation function in the x direction for the eigenstate with symmetric
-       occupation k,-k
+plot4: calculation of the correlation function in the x direction 
+       for the eigenstate with symmetric occupation k,-k
 
 plot5: comparison with the method of plot3 and plot4, to check the correctness of the calculations
 
@@ -21,7 +21,6 @@ plot8: calculation of the correlation length and plot of it (of fits and \xi as 
 
 plot9: same of the previous point but at each step it ask the 
        interval where to fit (useful for h,h0>1)
-       +++ added the gge calculation
 
 plot10: how xx-correlation change with d when there isn't a quench (just a verification of known results - Pfeuty article)
 
@@ -33,8 +32,34 @@ plot13: plot of time evolution and long time value of xxcorrelation at
 	and if the "reduced calculation" (obtained with limit t->infty) is
 	valid
 
-plot14: same as plot 13 but now the plot is xxcorrelation as a function of d
-	at a given time in comparison with long time value
+plot14: same as plot 13 but now the plot is xxcorrelation as a 
+	function of d at a given time in comparison with long time value
 
-plot15: plot of AiAj to try to understand the brak down for t larger than
+plot15: plot of AiAj to try to understand the break down for t larger than
 	a given t. (approx 125 for L=512)
+
+plot16: same of plot 9, divided in different parts: canonical, gge, 
+	infinite time and at a given time
+
+plot17: comparison between gge data and quench data
+
+plot18: plot of density of states in the plane xx - energy for all 
+	the eigenstates with simmetry k,-k
+
+plot19: plot of microcanonical sigma as a 
+	function of L, using exaustive enumeration
+	-> fixed d, changing L the domain doesn't change
+	-> fixed d, changing L the sigma seems to go to zero 
+
+plot20: plot of domain as a function of d, using exaustive enumeration
+	not good because we need large l to get values for large d
+
+plot21: analysis of \rho^xx_l for a SINGLE eigenstate, there is some rule?
+
+plot22: wl for the \rho^xx_l jdos
+
+plot23: wl for \rho^xx at given energy, comparison with exact calculation
+
+plot24: wl for \rho^xx at given energy, plot of sigma as a function of L
+
+plot25: wl for \rho^xx in order to compute the domain. plot as a function of l

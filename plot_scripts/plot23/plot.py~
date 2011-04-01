@@ -1,0 +1,65 @@
+
+import sys
+import os
+
+datadir = os.path.dirname(os.path.abspath(__file__))
+
+sys.path.append(datadir+'/../../libs/')
+sys.path.append(datadir+'/../../')
+
+import numpy
+import math
+import ising1D
+import utilities
+import system
+import matplotlib.pyplot as pp
+import matplotlib.cm as cm
+from  time import sleep,time
+
+from matplotlib import rc
+rc('text', usetex=True)
+
+def calc( d, h0, h, deltae, l=30,filename="data.dat" ):
+    #
+    print "...Doing calculation..."
+    #
+    # ... setting parameters
+    ising1D.system.h0 = h0
+    ising1D.system.h = h
+    ising1D.system.l = l
+    energy = system.E0(h0,h,l)
+    #
+    ising1D.system.datadir[:len(datadir)] = datadir
+    #
+    random_seed = numpy.random.random_integers(2024, size=8)
+    #
+    xxmax = 1.0
+    xxmin = -1.0
+    #
+    ising1D.wl_rho.accuracy = 1.0e-3
+    #
+    out = ising1D.wl_rho.wl_rhodos( d, energy, deltae, xxmin,xxmax,500,random_seed,False)
+    #
+    if out not in (0,2):
+        return
+    #
+    # ... saving data
+    #
+    #numpy.savetxt( datadir+'/'+filename, ising1D.wl_rho.logdosf.transpose(), fmt='%.18e')
+    numpy.savetxt( datadir+'/'+filename, ising1D.wl_rho.logdosf, fmt='%.18e')
+    #
+    plot(filename)
+    #
+    return
+
+def plot(filename="data.dat"):
+    #
+    print "... Doing the plot ..."
+    #
+    data = numpy.loadtxt( datadir+'/'+filename)
+    #
+    fig = pp.figure()
+    ax  = fig.add_subplot(111)
+    ax.plot(data[:,0],data[:,1])
+    #
+    return

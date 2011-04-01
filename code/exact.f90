@@ -8,7 +8,7 @@ MODULE exact
   REAL(kind = 8), DIMENSION (:,:), ALLOCATABLE :: real_array
   REAL(kind = 8), DIMENSION (:), ALLOCATABLE :: obs
   INTEGER, DIMENSION(:), ALLOCATABLE :: par
-  REAL(kind = 8) :: emax_plot, obsmax_plot 
+  REAL(kind = 8) :: emax_plot, obsmax_plot, obsmin_plot
   !
   !
 CONTAINS
@@ -587,6 +587,102 @@ CONTAINS
     !
     !
   END SUBROUTINE corralpha_calc_red
+  !
+  !
+  SUBROUTINE xxcorralpha_array_calc( d, ebin, xxbin, xxmax )
+    !
+    IMPLICIT NONE
+    !
+    INTEGER, INTENT(in) :: ebin, xxbin,d
+    REAL(kind = dp),INTENT(IN) :: xxmax
+    !
+    REAL(kind = 8), DIMENSION (:), ALLOCATABLE :: evect
+    REAL(kind = 8) :: deltae,deltaxx
+    INTEGER :: i,ixxbin,iebin,j
+    !
+    REAL(kind = 8) :: xxalpha, ealpha,k,egs
+    LOGICAL, DIMENSION(L/2) :: state
+    !
+    IF (allocated(array)) deallocate(array)
+    allocate(array(ebin,xxbin))
+    !
+    !
+    allocate( evect(L/2) )
+    !
+    !
+    !k points for an even number of fermions
+    egs = 0.0_dp
+    !
+    DO i=1,L/2
+       !
+       k = (pi*dble(2*i-1))/dble(L)
+       evect(i)  = energy( k, h, gamma )/dble(L)
+       egs = egs - evect(i) 
+       !
+    END DO
+    !
+    deltaxx = 2.0_dp*dabs(xxmax)/dble(xxbin)
+    deltae = 2.0_dp*dabs(egs)/dble(ebin)
+    !
+    emax_plot = dabs(egs)
+    obsmax_plot = 0.0d0
+    obsmin_plot = 0.0d0
+    !
+    array = 0
+    !
+    DO i=0,2**(L/2)-1
+       !
+       ealpha = egs
+       state  = .false.
+       !
+       DO j=1,L/2
+          IF ( btest(i,j-1) ) THEN
+             state(j)=.true.
+             ealpha = ealpha + 2.0_dp*evect(j)
+          END IF
+       END DO
+       !
+       xxalpha = xxcorrelation_red(d,state,L/2)
+       !
+       IF (xxalpha<obsmin_plot) obsmin_plot = xxalpha
+       IF (xxalpha>obsmax_plot) obsmax_plot = xxalpha
+       !
+       ixxbin = int((xxalpha+xxmax)/deltaxx)+1
+       iebin = int((ealpha-egs)/deltae)+1
+       !
+       !
+       IF ( (ixxbin <= xxbin).and.( ixxbin > 0 ).and.(iebin <= ebin) .and. (iebin > 0) ) THEN
+          array(iebin, ixxbin) = array(iebin, ixxbin) + 1
+       ELSE
+          IF (iebin > ebin) array(ebin, ixxbin) = array(ebin, ixxbin) + 1
+          IF (ixxbin > xxbin) array(iebin, xxbin) = array(iebin, xxbin) + 1
+       END IF
+       !
+    END DO
+    !
+    !
+    DEALLOCATE(evect)
+    !
+    !
+    RETURN
+    !
+  END SUBROUTINE xxcorralpha_array_calc
+  !
+  !
+  FUNCTION gs_xxcorr( d )
+    !
+    IMPLICIT NONE
+    !
+    INTEGER, INTENT(in) :: d
+    REAL(kind=dp) :: gs_xxcorr
+    LOGICAL, DIMENSION(L/2) :: state
+    !
+    !
+    state  = .false.
+    !
+    gs_xxcorr = xxcorrelation_red(d,state,L/2)
+    !
+  END FUNCTION gs_xxcorr
   !
   !
   !

@@ -1,0 +1,138 @@
+
+import sys
+import os
+
+datadir = os.path.dirname(os.path.abspath(__file__))
+
+sys.path.append(datadir+'/../../libs/')
+sys.path.append(datadir+'/../../')
+
+import numpy
+import math
+import ising1D
+import utilities
+import system
+import matplotlib.pyplot as pp
+from  time import sleep,time
+
+from matplotlib import rc
+rc('text', usetex=True)
+
+def get_last_dat(root):
+    files = os.listdir(datadir);
+    dat = []
+    [dat.append(int(name[len(name)-6:len(name)-4])) for name in files if (name.endswith(".dat") and name.startswith("data_"+root) )]
+    if (len(dat)>0):
+        return numpy.array(dat).max()
+    else:
+        return 0
+
+def calc( h0_in, h_in, l, fstr ):
+    """
+    h0_in    : is a list of sarting h
+    h_in     : is a list of final h
+    l        : length of the system
+    fstr     : function to use for calculating the xxcorrelation
+               examples: "thermal", "gga" or "long_time"
+    """
+    print "...Doing calculation..."
+    #
+    ising1D.system.l = l
+    ising1D.system.datadir[:len(datadir)] = datadir
+    #
+    dmax = 100
+    data = []
+    #
+    fit_fig = pp.figure()
+    fit_ax  = fit_fig.add_subplot(111)
+    #
+    if (fstr=="thermal"):
+        function = ising1D.canonical.thermal_xxcorrelation
+    elif (fstr=="gge"):
+        function = ising1D.gge.gge_xxcorrelation
+    else:
+        function = ising1D.quench.long_time_xxcorrelation
+    #
+    for h0 in h0_in:
+        for h in h_in:
+            #
+            ising1D.system.h = h
+            ising1D.system.h0 = h0
+            xxcorrelation = []
+            #
+            if (numpy.abs(h- h0) < 1.0e-5):
+                temperature = 0.0
+                if (h<1.0):
+                    continue
+            else:
+                energy = system.E0(h0,h,l)
+                temperature = ising1D.canonical.find_temperature( energy , 0.000001 )
+            #
+            for d in range(1,dmax):
+                if (fstr=="thermal"):
+                    xxcorrelation.append( function(d,temperature))
+                else:
+                    xxcorrelation.append( function(d))
+            #
+            temp = numpy.log10(numpy.abs(numpy.array(xxcorrelation)))
+            fit_ax.plot( range(1,dmax), temp ,'.',label = "h0 = %.1f" %h0 )
+            
+            fit_ax.set_ylim(top=0,bottom=temp.min())
+            pp.draw()
+            #
+            try:
+                dmin_fit = int(raw_input("dmin >"))
+            except:
+                dmin_fit = 30
+
+            try:
+                dmax_fit = int(raw_input("dmax >"))
+            except:
+                dmax_fit = dmax - 1
+
+            if (dmax_fit > dmax -1):
+                dmax_fit = dmax - 1
+    
+            data_corr = numpy.log(numpy.abs(numpy.array(xxcorrelation[dmin_fit-1:dmax_fit])))
+            xdata = numpy.arange(dmin_fit,dmax_fit+1)
+            p = numpy.polyfit(xdata,data_corr,1)
+
+            xdata = numpy.arange(1,dmax)
+            fit_ax.plot(xdata,(xdata*p[0]+p[1])*numpy.log10(numpy.exp(1)),'-',lw=2.0)
+            pp.draw()
+            #
+            #
+            data.append( [h0,h,energy,temperature,numpy.abs(1.0/p[0])] )
+    #
+    fit_ax.legend(loc=0)
+    pp.draw()
+    #
+    index = get_last_dat(fstr)+1
+    numpy.savetxt( datadir+'/data_'+fstr+'%02d.dat' %index, numpy.array(data) ,fmt='%.18e')
+    print "Data saved in data_"+fstr+'%02d.dat' %index
+    #
+    plot( [fstr+'%02d' %index] )
+    #
+    return
+
+def plot( functions ):
+    #
+    print "... Doing the plot ..."
+    #
+    fig = pp.figure()
+    ax  = fig.add_subplot(111)
+
+    for fstr in functions:
+        data = numpy.loadtxt( datadir + '/data_'+fstr+'.dat' )
+        print "final h =",data[0,1]
+        #
+        #if ( fstr.find("thermal")>=0):
+        #    print "funzia"
+        #    ax.plot( 0.5*data[:,3],0.5*numpy.abs(data[:,4]) ,".",ms=4 ,label=fstr)
+        #else:
+        ax.plot( data[:,3], numpy.abs(data[:,4]) ,".",ms=4 ,label=fstr)
+    #
+    ax.legend(loc=0)
+    #
+    #
+    return

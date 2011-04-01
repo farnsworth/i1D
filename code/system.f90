@@ -1,6 +1,8 @@
 !it is written to work with even number of fermions -> add for odd number of fermions
 MODULE system
   !
+  IMPLICIT NONE
+  !
   INTEGER, PARAMETER :: dp = 8
   !
   !
@@ -12,7 +14,7 @@ MODULE system
   REAL (kind=8) :: pi = 3.141592653589793_dp
   !
   CHARACTER(LEN=500) :: datadir = 'data/'
-  !
+  ! 
   !
 CONTAINS
   !
@@ -161,7 +163,7 @@ CONTAINS
   !        xxcorrelation : for any eigenstate
   !        xxcorrelation_red : reduced space (only state with simmetry k,-k)
   !
-    ! ... i must use size because f2py has some problem
+  ! ... i must use size because f2py has some problem
   ! ... in using an array of size L (variable inside system)
   FUNCTION xxcorrelation(d, state, size_in )
     !
@@ -425,7 +427,7 @@ CONTAINS
        IF (state(i_tmp)) THEN
           res = res - ( dcos( k*dble(d-1) ) - h * dcos(k*dble(d) ) )/e
        ELSE
-          res = res - ( - dcos( k*dble(d-1) ) + h * dcos(k*dble(d)) )/e
+          res = res + ( dcos( k*dble(d-1) ) - h * dcos(k*dble(d)) )/e
        ENDIF
        !
     ENDDO
@@ -433,6 +435,36 @@ CONTAINS
     BiAj_red = res*4.0_dp/dble(L)
     !
   END FUNCTION BiAj_red
+  !
+  !
+  !
+  FUNCTION state_ex_energy( state, size_in )
+    !
+    IMPLICIT NONE
+    !
+    INTEGER, INTENT(IN) :: size_in
+    LOGICAL, INTENT(IN), DIMENSION(size_in) :: state
+    !
+    INTEGER :: i
+    REAL(kind= 8) :: state_ex_energy,k
+    !
+    !
+    state_ex_energy = 0.0_dp
+    !
+    DO i=1,size_in
+       !
+       k = (pi*dble(2*i-1))/dble(L)
+       !
+       IF (state(i)) THEN
+          state_ex_energy = state_ex_energy + 2.0_dp * energy(k,h,gamma)
+       ENDIF
+       !
+    ENDDO
+    !
+    state_ex_energy = state_ex_energy/dble(L)
+    !
+    !
+  END FUNCTION state_ex_energy
   !
   !
 END MODULE system

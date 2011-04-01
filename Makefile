@@ -4,12 +4,21 @@ CODE_DIR=code/
 
 OBJECTS=${CODE_DIR}system.f90 \
 	${CODE_DIR}wl.f90 \
+	${CODE_DIR}wl_rho.f90 \
 	${CODE_DIR}exact.f90 \
 	${CODE_DIR}quench.f90 \
 	${CODE_DIR}canonical.f90 \
-	${CODE_DIR}wl_new.f90
+	${CODE_DIR}wl_new.f90 \
+	${CODE_DIR}gge.f90 \
+	${CODE_DIR}microcanonical.f90
+
+# bisognerebbe guardare dipendenze
+#OBJECTS = $(shell ls ${CODE_DIR}*.f90)
 
 MODULE=ising1D
+
+#LIBDIR=/usr/lib
+#LAPACK=liblapack
 
 default :
 	@echo 'to produce the module type at the shell prompt:'

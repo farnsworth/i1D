@@ -19,6 +19,16 @@ from matplotlib import rc
 rc('text', usetex=True)
 
 def calc( d, h, l ):
+    """Do a plot of xxcorrelation for all the eigenstates with simmetry k,-k.
+    
+    Usage:
+          calc(d, h, l)
+
+    Where:
+          d         --> correlation distance
+          h         --> transverse magnetization
+          l         --> size of the system
+    """
     #
     print "...Doing calculation..."
     #

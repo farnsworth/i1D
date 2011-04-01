@@ -222,3 +222,8 @@ def PlotProj():
     pp.show()
 
     return
+
+
+
+def trial(h,l):
+    print system.Egs( h, l )

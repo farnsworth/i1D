@@ -766,4 +766,241 @@ CONTAINS
   END FUNCTION long_time_XXCORRELATION
   !
   !
+  !
+  ! time dependence of the correlation (the time is time from the
+  ! quench!!!!)
+  ! we have to use the pfaffian !!!
+  !
+  FUNCTION time_BiAj (t,d)
+    !
+    INTEGER, INTENT(IN) :: d
+    REAL (kind = 8) :: t
+    REAL (kind = 8) :: term, k,ek,e0k,temp
+    COMPLEX (kind = 8) :: time_BiAj
+    !
+    temp = 0.0d0
+    !
+    DO i_tmp=1,L/2
+       !
+       k = (pi*dble(2*i_tmp-1))/dble(L)
+       ek = energy(k,h,gamma)
+       e0k = energy(k,h0,gamma)
+       !
+       term = (- h0*dcos(k*dble(d))+dcos(k*dble(d-1)))/e0k
+       term = term + 4.0d0*dsin(k)*(h0-h)*(1.0d0-dcos( 2.0d0*ek*t ) )*(h*dsin(k*dble(d)) - dsin(k*dble(d-1)) )/(e0k*ek*ek)
+       !
+       temp = temp + term
+       !
+    ENDDO
+    !
+    temp = 4.0_dp * temp/ dble(L)
+    time_BiAj = temp*(1.0d0,0.0d0)
+    !
+  END FUNCTION time_BiAj
+  !
+  !
+  !
+  FUNCTION time_AiAj (t,d)
+    !
+    INTEGER, INTENT(IN) :: d
+    REAL (kind = 8) :: t
+    REAL (kind = 8) :: term, k,ek,e0k,temp
+    COMPLEX(kind = 8) :: time_AiAj
+    !
+    IF (d==0) THEN
+       time_AiAj = (1.0d0,0.0d0)
+    ELSE
+       temp = 0.0_dp
+       !
+       DO i_tmp=1,L/2
+          !
+          k = (pi*dble(2*i_tmp-1))/dble(L)
+          ek = energy(k,h,gamma)
+          e0k = energy(k,h0,gamma)
+          !
+          term = dsin(k)*dsin(k*dble(d))*dsin(2.0d0*ek*t)/(ek*e0k)
+          !
+          temp = temp + term
+          !
+       ENDDO
+       !
+       temp = -8.0d0*(h0-h)*temp/dble(L)
+       !
+       time_AiAj =  temp * ( 0.0d0, 1.0d0 )
+    ENDIF
+    !
+  END FUNCTION time_AiAj
+  !
+  !
+  FUNCTION time_BiBj (t,d)
+    !
+    INTEGER, INTENT(IN) :: d
+    REAL (kind = 8) :: t
+    REAL (kind = 8) :: term, k,ek,e0k,temp
+    COMPLEX(kind = 8) :: time_BiBj
+    !
+    IF (d==0) THEN
+       time_BiBj = (-1.0d0,0.0d0)
+    ELSE
+       !
+       temp = 0.0_dp
+       !
+       DO i_tmp=1,L/2
+          !
+          k = (pi*dble(2*i_tmp-1))/dble(L)
+          ek = energy(k,h,gamma)
+          e0k = energy(k,h0,gamma)
+          !
+          term = dsin(k)*dsin(k*dble(d))*dsin(2.0d0*ek*t)/(ek*e0k)
+          !
+          temp = temp + term
+          !
+       ENDDO
+       !
+       temp = -8.0d0*(h0-h)*temp/dble(L)
+       !
+       time_BiBj =  temp * ( 0.0d0, 1.0d0 )
+       !
+    ENDIF
+    !
+  END FUNCTION time_BiBj
+  !
+  !
+  FUNCTION time_xxcorrelation (t , d )
+    !
+    INTEGER, INTENT(IN) :: d
+    REAL( kind = dp ), INTENT(IN) :: t
+    COMPLEX(kind = dp), DIMENSION ( 2*d, 2*d ) :: matrix
+    COMPLEX(kind=dp), DIMENSION ( -d+2:d ) :: vectorBiAj
+    COMPLEX(kind=dp), DIMENSION( 1:d-1 ) :: vectorAiAj,vectorBiBj
+    INTEGER :: j,k,info,sign,irow,icol,delta
+    INTEGER,DIMENSION(2*d) :: pivot
+    COMPLEX(kind = dp) :: det
+    !
+    COMPLEX(kind= 8) :: time_xxcorrelation
+    !
+    !
+    matrix = (0.0_dp,0.0_dp)
+    det = (1.0_dp,0.0_dp)
+    !
+    DO k=-d+2,d
+       vectorBiAj(k) = time_BiAj(t,k)
+    ENDDO
+    !
+    DO k=1,d-1
+       vectorAiAj(k) = time_AiAj(t,k)
+       vectorBiBj(k) = time_BiBj(t,k)
+    ENDDO
+    !
+    DO k=1,d
+       !
+       irow = 2*k
+       matrix(irow-1, irow) = vectorBiAj(1)
+       matrix(irow, irow-1) = - vectorBiAj(1)
+       !
+       IF (k<d) THEN
+          !
+          DO j=k+1,d
+             !
+             delta = j-k
+             icol = 2*j
+             matrix(irow-1,icol-1) = vectorBiBj(delta)
+             matrix(irow-1,icol) = vectorBiAj(delta+1)
+             matrix(irow,icol-1) = - vectorBiAj(-delta+1)
+             matrix(irow,icol) = vectorAiAj(delta)
+             !
+             matrix(icol-1,irow-1) = - matrix(irow-1,icol-1)
+             matrix(icol,irow-1) = - matrix(irow-1,icol)
+             matrix(icol-1,irow) = - matrix(irow,icol-1)
+             matrix(icol,irow) = - matrix(irow,icol)
+            !
+          ENDDO
+          !
+       END IF
+       !
+       !
+    ENDDO
+    !
+    ! calculation of the determinant
+    info = 1
+    !
+    pivot = 0
+    !
+    !
+    CALL zgetrf( 2*d , 2*d ,matrix, 2*d , pivot,info)
+    !
+    !
+    !print*,"info",info,"pivot",pivot
+    !
+    ! compute the determinant
+    !
+    DO k=1,2*d
+       det = det*matrix(k,k)
+    ENDDO
+    !
+    ! compute the sign of the determiant
+    !
+    sign = 0
+    !
+    DO k=1,2*d
+       IF ( pivot(k) /= k) sign = sign +1
+    END DO
+    !
+    IF (mod(sign,2) == 1) THEN
+       det = -det
+    END IF
+    !
+    !print*,"det",det
+    time_xxcorrelation = cdsqrt(det)
+    !time_xxcorrelation = det
+    !
+  END FUNCTION time_XXCORRELATION
+  !
+  !
+  FUNCTION time_coeff (t)
+    !
+    REAL (kind = 8) :: t
+    REAL (kind = 8) :: k,ek,temp
+    REAL (kind = 8) :: time_coeff
+    !
+    temp = 0.0d0
+    !
+    DO i_tmp=1,L/2
+       !
+       k = (pi*dble(2*i_tmp-1))/dble(L)
+       ek = 2.0d0*dsqrt(1.0d0+1.25d0*1.25d0-2.0d0*dcos(k)*1.25d0) !energy(k,h,gamma)
+       !
+       temp = temp + dcos( 2.0d0*ek*t )
+       !
+    ENDDO
+    !
+    time_coeff = temp/ dble(L)
+    !
+  END FUNCTION time_coeff
+  !
+  !
+  FUNCTION long_time_coeff (d)
+    !
+    INTEGER, INTENT(IN) :: d
+    REAL (kind = 8) :: k,ek,e0k,temp
+    REAL (kind = 8) :: long_time_coeff
+    !
+    temp = 0.0d0
+    !
+    DO i_tmp=1,L/2
+       !
+       k = (pi*dble(2*i_tmp-1))/dble(L)
+       ek = energy(k,h,gamma)
+       e0k = energy(k,h0,gamma)
+       !
+       temp = temp + dsin(k)*(h*dsin(k*dble(d)) - dsin(k*dble(d-1)) )
+       !
+    ENDDO
+    !
+    long_time_coeff = temp/ dble(L)
+    !
+  END FUNCTION long_time_coeff
+  !
+  !
+  !
 END MODULE quench
